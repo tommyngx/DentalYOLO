@@ -1,6 +1,6 @@
 # DentXpert
 
-**FineDent** is a customized object detection framework for dental X-ray images.  
+**DentXpert** is a customized object detection framework for dental X-ray images.  
 This repository is built on a forked Ultralytics source codebase and focuses on improving detection performance for small and subtle dental abnormalities.
 
 ## Repository Structure
