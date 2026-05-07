@@ -1,0 +1,15 @@
+# Yolo Detection Research Requirements
+ultralytics
+pycocotools
+supervision
+opencv-python
+matplotlib
+numpy
+pandas
+tqdm
+scipy
+seaborn
+scikit-learn
+ipython
+jupyter
+# Add other research dependencies below as needed
