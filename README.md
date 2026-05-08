@@ -6,7 +6,7 @@ This repository is built on a forked Ultralytics source codebase and focuses on 
 ## Repository Structure
 
 ```text
-DentXpert/
+DentalYOLO/
 ├── ultralytics/        # Forked Ultralytics source code
 ├── configs/            # Model and dataset configuration files
 ├── scripts/            # Training, validation, prediction, and export scripts
