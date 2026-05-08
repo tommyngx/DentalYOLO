@@ -76,6 +76,7 @@ from .conv import (
     RepConv,
     SpatialAttention,
 )
+from .dental_modules import DRELAN, LATDAA, XRayEnhanceConv
 from .head import (
     OBB,
     OBB26,
@@ -152,6 +153,7 @@ __all__ = (
     "DeformableTransformerDecoder",
     "DeformableTransformerDecoderLayer",
     "Detect",
+    "DRELAN",
     "Focus",
     "GhostBottleneck",
     "GhostConv",
@@ -160,6 +162,7 @@ __all__ = (
     "ImagePoolingAttn",
     "Index",
     "LRPCHead",
+    "LATDAA",
     "LayerNorm2d",
     "LightConv",
     "MLPBlock",
@@ -183,10 +186,9 @@ __all__ = (
     "TransformerEncoderLayer",
     "TransformerLayer",
     "WorldDetect",
+    "XRayEnhanceConv",
     "YOLOEDetect",
     "YOLOESegment",
     "YOLOESegment26",
     "v10Detect",
 )
-
-import ultralytics.nn.modules.dental_modules

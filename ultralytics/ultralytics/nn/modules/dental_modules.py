@@ -461,7 +461,9 @@ def _register_with_ultralytics():
     _patch_parse_model(_t)
 
 
-_register_with_ultralytics()
+# Do not auto-register while ultralytics.nn.tasks is importing this module.
+# The custom classes are imported by ultralytics.nn.modules and added to
+# parse_model's base_modules directly in ultralytics.nn.tasks.
 
 
 # ============================================================================

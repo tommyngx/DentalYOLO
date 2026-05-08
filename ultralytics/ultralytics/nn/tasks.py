@@ -45,6 +45,7 @@ from ultralytics.nn.modules import (
     Conv2,
     ConvTranspose,
     Detect,
+    DRELAN,
     DWConv,
     DWConvTranspose2d,
     Focus,
@@ -55,6 +56,7 @@ from ultralytics.nn.modules import (
     ImagePoolingAttn,
     Index,
     LRPCHead,
+    LATDAA,
     Pose,
     Pose26,
     RepC3,
@@ -68,6 +70,7 @@ from ultralytics.nn.modules import (
     Segment26,
     TorchVision,
     WorldDetect,
+    XRayEnhanceConv,
     YOLOEDetect,
     YOLOESegment,
     YOLOESegment26,
@@ -1578,6 +1581,7 @@ def parse_model(d, ch, verbose=True):
         {
             Classify,
             Conv,
+            XRayEnhanceConv,
             ConvTranspose,
             GhostConv,
             Bottleneck,
@@ -1610,6 +1614,8 @@ def parse_model(d, ch, verbose=True):
             SCDown,
             C2fCIB,
             A2C2f,
+            LATDAA,
+            DRELAN,
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
