@@ -22,6 +22,7 @@ from torch.utils.data import DataLoader, Dataset
 from ultralytics.nn.modules import MaskedReconstructionLoss, random_patch_mask
 from ultralytics.nn.tasks import BaseModel, parse_model, yaml_model_load
 from ultralytics.utils import LOGGER, YAML
+from ultralytics.utils.patches import torch_load
 from ultralytics.utils.torch_utils import initialize_weights, intersect_dicts, select_device
 
 IMG_SUFFIXES = {".bmp", ".dcm", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
@@ -59,7 +60,7 @@ class UnlabeledOPGDataset(Dataset):
     """Minimal image-folder dataset for SSL pretraining."""
 
     def __init__(self, root, imgsz=640, channels=1):
-        self.root = Path(root)
+        self.root = resolve_ssl_data(root)
         self.imgsz = imgsz
         self.channels = channels
         if self.root.is_file():
@@ -85,6 +86,20 @@ class UnlabeledOPGDataset(Dataset):
         im = cv2.resize(im, (self.imgsz, self.imgsz), interpolation=cv2.INTER_AREA)
         im = torch.from_numpy(im).permute(2, 0, 1).contiguous().float() / 255.0
         return im, str(path)
+
+
+def resolve_ssl_data(data):
+    """Resolve an image folder, txt image list, or YOLO dataset YAML to SSL image input."""
+    path = Path(data)
+    if path.suffix.lower() in {".yaml", ".yml"}:
+        cfg = YAML.load(path)
+        root = Path(cfg.get("path", path.parent))
+        train = cfg.get("train")
+        if train is None:
+            raise KeyError(f"Dataset YAML '{path}' has no 'train' key for SSL image discovery")
+        train_path = Path(train)
+        return train_path if train_path.is_absolute() else root / train_path
+    return path
 
 
 class DentalSSLModel(BaseModel):
@@ -148,7 +163,7 @@ def train(args):
     )
     model = DentalSSLModel(args.model, ch=channels, verbose=True).to(device)
     if args.weights:
-        ckpt = torch.load(args.weights, map_location="cpu")
+        ckpt = torch_load(args.weights, map_location="cpu")
         model.load(ckpt)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
