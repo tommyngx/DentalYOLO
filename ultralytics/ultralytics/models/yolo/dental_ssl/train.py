@@ -10,6 +10,7 @@ Example:
 from __future__ import annotations
 
 import argparse
+import os
 import time
 from copy import deepcopy
 from pathlib import Path
@@ -23,7 +24,7 @@ from ultralytics.nn.modules import MaskedReconstructionLoss, random_patch_mask
 from ultralytics.nn.tasks import BaseModel, parse_model, yaml_model_load
 from ultralytics.utils import LOGGER, YAML
 from ultralytics.utils.patches import torch_load
-from ultralytics.utils.torch_utils import initialize_weights, intersect_dicts, select_device
+from ultralytics.utils.torch_utils import autocast, init_seeds, initialize_weights, intersect_dicts, select_device
 
 IMG_SUFFIXES = {".bmp", ".dcm", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
 # Ultralytics resolves this scale-specific alias to dentalssl-yolo26.yaml
@@ -80,10 +81,16 @@ class UnlabeledOPGDataset(Dataset):
         if im is None:
             raise FileNotFoundError(f"Could not read image: {path}")
         if self.channels == 1:
-            im = im[:, :, None]
+            if im.ndim == 3:
+                im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         else:
-            im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+            if im.ndim == 2:
+                im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
+            else:
+                im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
         im = cv2.resize(im, (self.imgsz, self.imgsz), interpolation=cv2.INTER_AREA)
+        if im.ndim == 2:
+            im = im[:, :, None]
         im = torch.from_numpy(im).permute(2, 0, 1).contiguous().float() / 255.0
         return im, str(path)
 
@@ -150,14 +157,19 @@ def save_encoder_state(path, model, decoder_index=29):
 def train(args):
     if not args.data:
         raise ValueError("Dental SSL training requires --data or train_dental_ssl(data=...).")
+    if args.seed is not None:
+        init_seeds(args.seed, deterministic=args.deterministic)
     device = select_device(args.device)
     channels = args.channels
     dataset = UnlabeledOPGDataset(args.data, imgsz=args.imgsz, channels=channels)
+    workers = min(args.workers, max((os.cpu_count() or 1) - 1, 0))
+    if workers != args.workers:
+        LOGGER.warning(f"Reducing workers from {args.workers} to {workers} for this runtime.")
     loader = DataLoader(
         dataset,
         batch_size=args.batch,
         shuffle=True,
-        num_workers=args.workers,
+        num_workers=workers,
         pin_memory=device.type != "cpu",
         drop_last=False,
     )
@@ -167,7 +179,7 @@ def train(args):
         model.load(ckpt)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    scaler = torch.cuda.amp.GradScaler(enabled=args.amp and device.type != "cpu")
+    scaler = torch.amp.GradScaler("cuda", enabled=args.amp and device.type == "cuda")
     save_dir = Path(args.project) / args.name
     save_dir.mkdir(parents=True, exist_ok=True)
     best_loss = float("inf")
@@ -184,7 +196,7 @@ def train(args):
         for i, (imgs, _) in enumerate(loader):
             imgs = imgs.to(device, non_blocking=True)
             masked, mask = random_patch_mask(imgs, mask_ratio=args.mask_ratio, patch_size=args.patch)
-            with torch.cuda.amp.autocast(enabled=args.amp and device.type != "cpu"):
+            with autocast(enabled=args.amp and device.type != "cpu", device=device.type):
                 pred = model(masked)
                 loss, items = criterion(pred, imgs, mask)
             scaler.scale(loss).backward()
@@ -231,6 +243,8 @@ def parse_args(args=None):
     parser.add_argument("--imgsz", type=int, default=640)
     parser.add_argument("--channels", type=int, default=1, choices=(1, 3))
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--deterministic", action="store_true")
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--weight-decay", type=float, default=0.05)
     parser.add_argument("--mask-ratio", type=float, default=0.5)
