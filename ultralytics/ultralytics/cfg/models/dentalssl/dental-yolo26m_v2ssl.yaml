@@ -1,13 +1,10 @@
-# DentalYOLO26 SSL pretraining model.
+# DentalYOLO26m v2 SSL pretraining model.
 #
-# Based on dental-yolo26m_v2:
-#   - Keep YOLO26-P2 feature pyramid through layers 0-28.
-#   - Remove Detect.
-#   - Add DentalReconstructionDecoder over P2/P3/P4/P5 features [19, 22, 25, 28].
+# Source detection YAML:
+#   cfg/models/dental26/dental-yolo26m_v2.yaml
 #
-# Use this only for masked image reconstruction pretraining. After SSL, strip the
-# decoder and transfer matching weights into a detection YAML such as
-# cfg/models/dental26/dental-yolo26m_v2.yaml.
+# Keeps the YOLO26-P2 feature pyramid through layers 0-28, removes Detect, and
+# adds a lightweight reconstruction decoder over P2/P3/P4/P5 features.
 
 nc: 1
 end2end: False

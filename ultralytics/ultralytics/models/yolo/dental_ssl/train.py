@@ -3,7 +3,7 @@
 Example:
     python -m ultralytics.models.yolo.dental_ssl.train \
         --data /path/to/unlabeled_opg/images \
-        --model ultralytics/cfg/models/dentalssl/dentalssl-yolo26m.yaml \
+        --model ultralytics/cfg/models/dentalssl/dental-yolo26m_v2ssl.yaml \
         --epochs 100 --imgsz 640 --batch 8 --device 0
 """
 
@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import time
 from copy import deepcopy
 from pathlib import Path
@@ -27,20 +28,24 @@ from ultralytics.utils.patches import torch_load
 from ultralytics.utils.torch_utils import autocast, init_seeds, initialize_weights, intersect_dicts, select_device
 
 IMG_SUFFIXES = {".bmp", ".dcm", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
-# Ultralytics resolves this scale-specific alias to dentalssl-yolo26.yaml
-# and sets scale="m" from the requested filename.
-DEFAULT_MODEL = Path(__file__).resolve().parents[3] / "cfg/models/dentalssl/dentalssl-yolo26m.yaml"
+DEFAULT_MODEL = Path(__file__).resolve().parents[3] / "cfg/models/dentalssl/dental-yolo26m_v2ssl.yaml"
 
 
 def dental_ssl_yaml_load(path):
     """Load dentalssl YAML while preserving Ultralytics-style scale aliases.
 
-    This loader resolves ``dentalssl-yolo26m.yaml`` to the base
-    ``dentalssl-yolo26.yaml`` and sets ``scale='m'`` explicitly.
+    This loader fixes scale detection for filenames ending in ``ssl``. The
+    generic Ultralytics regex can read ``yolo26ssl`` as scale ``s``.
     """
     path = Path(path)
     if path.exists():
         d = yaml_model_load(path)
+        stem = path.stem
+        match = re.search(r"yolo26([nsmxl])(?:_|-)?[^/]*ssl$", stem)
+        if match:
+            d["scale"] = match.group(1)
+        elif stem.endswith("ssl"):
+            d["scale"] = "m"
     else:
         scale = ""
         stem = path.stem
