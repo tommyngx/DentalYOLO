@@ -76,6 +76,7 @@ from .conv import (
     RepConv,
     SpatialAttention,
 )
+from .dental_yolo_blocks import BiFPNLite, C3k2ECA, ECALayer, LargeKernelDWContext
 from .dental_modules import DRELAN, LATDAA, XRayEnhanceConv
 from .dental_ssl_modules import DentalReconstructionDecoder, MaskedReconstructionLoss, random_patch_mask, ssim_loss
 from .head import (
@@ -95,6 +96,7 @@ from .head import (
     YOLOESegment26,
     v10Detect,
 )
+from .slot_attention import SlotAttention
 from .transformer import (
     AIFI,
     MLP,
@@ -131,6 +133,7 @@ __all__ = (
     "ADown",
     "Attention",
     "BNContrastiveHead",
+    "BiFPNLite",
     "Bottleneck",
     "BottleneckCSP",
     "C2f",
@@ -139,6 +142,7 @@ __all__ = (
     "C2fPSA",
     "C3Ghost",
     "C3k2",
+    "C3k2ECA",
     "C3x",
     "CBFuse",
     "CBLinear",
@@ -156,6 +160,7 @@ __all__ = (
     "Detect",
     "DentalReconstructionDecoder",
     "DRELAN",
+    "ECALayer",
     "Focus",
     "GhostBottleneck",
     "GhostConv",
@@ -165,6 +170,7 @@ __all__ = (
     "Index",
     "LRPCHead",
     "LATDAA",
+    "LargeKernelDWContext",
     "LayerNorm2d",
     "LightConv",
     "MLPBlock",
@@ -184,6 +190,7 @@ __all__ = (
     "Segment",
     "Segment26",
     "SpatialAttention",
+    "SlotAttention",
     "TorchVision",
     "TransformerBlock",
     "TransformerEncoderLayer",

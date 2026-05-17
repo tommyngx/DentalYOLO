@@ -30,12 +30,14 @@ from ultralytics.nn.modules import (
     ADown,
     Bottleneck,
     BottleneckCSP,
+    BiFPNLite,
     C2f,
     C2fAttn,
     C2fCIB,
     C2fPSA,
     C3Ghost,
     C3k2,
+    C3k2ECA,
     C3x,
     CBFuse,
     CBLinear,
@@ -58,6 +60,7 @@ from ultralytics.nn.modules import (
     Index,
     LRPCHead,
     LATDAA,
+    LargeKernelDWContext,
     Pose,
     Pose26,
     RepC3,
@@ -69,6 +72,7 @@ from ultralytics.nn.modules import (
     SCDown,
     Segment,
     Segment26,
+    SlotAttention,
     TorchVision,
     WorldDetect,
     XRayEnhanceConv,
@@ -1583,6 +1587,8 @@ def parse_model(d, ch, verbose=True):
             Classify,
             Conv,
             XRayEnhanceConv,
+            SlotAttention,
+            LargeKernelDWContext,
             ConvTranspose,
             GhostConv,
             Bottleneck,
@@ -1598,6 +1604,7 @@ def parse_model(d, ch, verbose=True):
             C2,
             C2f,
             C3k2,
+            C3k2ECA,
             RepNCSPELAN4,
             ELAN1,
             ADown,
@@ -1626,6 +1633,7 @@ def parse_model(d, ch, verbose=True):
             C2,
             C2f,
             C3k2,
+            C3k2ECA,
             C2fAttn,
             C3,
             C3TR,
@@ -1663,7 +1671,7 @@ def parse_model(d, ch, verbose=True):
             if m in repeat_modules:
                 args.insert(2, n)  # number of repeats
                 n = 1
-            if m is C3k2:  # for M/L/X sizes
+            if m in {C3k2, C3k2ECA}:  # for M/L/X sizes
                 legacy = False
                 if scale in "mlx":
                     args[3] = True
@@ -1687,6 +1695,10 @@ def parse_model(d, ch, verbose=True):
             args = [ch[f]]
         elif m is Concat:
             c2 = sum(ch[x] for x in f)
+        elif m is BiFPNLite:
+            c2 = args[0]
+            c2 = make_divisible(min(c2, max_channels) * width, 8)
+            args = [[ch[x] for x in f], c2, *args[1:]]
         elif m in frozenset(
             {
                 Detect,

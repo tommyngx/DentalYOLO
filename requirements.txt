@@ -12,4 +12,13 @@ seaborn
 scikit-learn
 ipython
 jupyter
+
+# RF-DETR integration dependencies
+pydantic>=2.0,<3
+transformers>=5.1.0,<6.0.0
+pytorch-lightning>=2.6,<3,!=2.6.2,!=2.6.3
+torchmetrics[detection]>=1.2
+albumentations>=1.4.24,<3.0.0
+pyDeprecate>=0.6,<0.8
+tensorboard>=2.13.0
 # Add other research dependencies below as needed
