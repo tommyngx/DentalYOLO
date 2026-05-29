@@ -97,6 +97,7 @@ from .head import (
     v10Detect,
 )
 from .slot_attention import SlotAttention
+from .slim_slot_attention import C2Slot, SlimSlotAttention
 from .transformer import (
     AIFI,
     MLP,
@@ -114,6 +115,7 @@ __all__ = (
     "AIFI",
     "C1",
     "C2",
+    "C2Slot",
     "C2PSA",
     "C3",
     "C3TR",
@@ -191,6 +193,7 @@ __all__ = (
     "Segment26",
     "SpatialAttention",
     "SlotAttention",
+    "SlimSlotAttention",
     "TorchVision",
     "TransformerBlock",
     "TransformerEncoderLayer",
