@@ -64,7 +64,8 @@ def muon_update(grad: torch.Tensor, momentum: torch.Tensor, beta: float = 0.95, 
     and scales the final update based on parameter dimensions.
 
     Args:
-        grad (torch.Tensor): Gradient tensor to update. Can be 2D or 4D (for conv filters).
+        grad (torch.Tensor): Gradient tensor to update. Can be 2D or 4D (for conv filters). Other tensor ranks fall
+            back to the momentum update without Newton-Schulz orthogonalization.
         momentum (torch.Tensor): Momentum buffer tensor, modified in-place via lerp.
         beta (float, optional): Momentum coefficient for exponential moving average. Default: 0.95.
         nesterov (bool, optional): Whether to use Nesterov momentum acceleration. Default: True.
@@ -85,12 +86,15 @@ def muon_update(grad: torch.Tensor, momentum: torch.Tensor, beta: float = 0.95, 
         - With Nesterov: update = beta * momentum + (1-beta) * grad.
         - Without Nesterov: update = momentum.
         - 4D tensors (conv filters) are reshaped to 2D as (out_channels, in_channels*height*width) for orthogonalization.
+        - Non-2D/4D tensors are returned without orthogonalization; they should normally be excluded from Muon groups.
         - Final update is scaled by sqrt(max(1, dim[-2] / dim[-1])) to account for parameter dimensions.
     """
     momentum.lerp_(grad, 1 - beta)
     update = grad.lerp(momentum, beta) if nesterov else momentum
     if update.ndim == 4:  # for the case of conv filters
         update = update.view(len(update), -1)
+    elif update.ndim != 2:
+        return update
     update = zeropower_via_newtonschulz5(update)
     update *= max(1, grad.size(-2) / grad.size(-1)) ** 0.5
     return update
