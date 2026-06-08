@@ -76,7 +76,16 @@ from .conv import (
     RepConv,
     SpatialAttention,
 )
-from .dental_yolo_blocks import BiFPNLite, C3k2ECA, ECALayer, LargeKernelDWContext, WeightedAddFusion
+from .dental_yolo_blocks import (
+    ArchLSKA,
+    BiFPNLite,
+    C3k2ECA,
+    DAABLite,
+    ECALayer,
+    LargeKernelDWContext,
+    TripletAttention,
+    WeightedAddFusion,
+)
 from .dental_modules import DRELAN, LATDAA, XRayEnhanceConv
 from .dental_ssl_modules import DentalReconstructionDecoder, MaskedReconstructionLoss, random_patch_mask, ssim_loss
 from .head import (
@@ -134,6 +143,7 @@ __all__ = (
     "AConv",
     "ADown",
     "Attention",
+    "ArchLSKA",
     "BNContrastiveHead",
     "BiFPNLite",
     "Bottleneck",
@@ -160,6 +170,7 @@ __all__ = (
     "DeformableTransformerDecoder",
     "DeformableTransformerDecoderLayer",
     "Detect",
+    "DAABLite",
     "DentalReconstructionDecoder",
     "DRELAN",
     "ECALayer",
@@ -198,6 +209,7 @@ __all__ = (
     "TransformerBlock",
     "TransformerEncoderLayer",
     "TransformerLayer",
+    "TripletAttention",
     "WorldDetect",
     "WeightedAddFusion",
     "XRayEnhanceConv",
