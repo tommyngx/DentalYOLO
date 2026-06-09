@@ -1,5 +1,6 @@
-# DentalYOLO26 v10 - Arch-LSKA-YOLO26.
-# Starts from cfg/models/26/yolo26.yaml and inserts one dental arch attention block in the backbone.
+# DentalYOLO26 v10 - DAAB-lite-YOLO26.
+# Starts from cfg/models/26/yolo26.yaml and inserts one DAAB-lite block in the backbone.
+# DAAB-lite already contains a lightweight Triplet Attention stage, and one extra Triplet block is used at P3 neck.
 # The SPPF block and YOLO26 Detect head module are unchanged.
 
 # Parameters
@@ -26,7 +27,7 @@ backbone:
   - [-1, 2, C3k2, [512, True]]                   # 6
   - [-1, 1, Conv, [1024, 3, 2]]                  # 7-P5/32
   - [-1, 2, C3k2, [1024, True]]                  # 8
-  - [-1, 1, ArchLSKA, [1024, 41, 21]]            # 9 horizontal-biased dental arch context
+  - [-1, 1, DAABLite, [1024, 31, 15]]            # 9 dental arch attention, single backbone use
   - [-1, 1, SPPF, [1024, 5, 3, True]]            # 10
   - [-1, 2, C2PSA, [1024]]                       # 11
 
@@ -39,13 +40,14 @@ head:
   - [-1, 1, nn.Upsample, [None, 2, "nearest"]]   # 15
   - [[-1, 4], 1, Concat, [1]]                    # 16 cat backbone P3
   - [-1, 2, C3k2, [256, True]]                   # 17 P3/8-small
+  - [-1, 1, TripletAttention, [256]]             # 18 neck P3 attention
 
-  - [-1, 1, Conv, [256, 3, 2]]                   # 18
-  - [[-1, 14], 1, Concat, [1]]                   # 19 cat head P4
-  - [-1, 2, C3k2, [512, True]]                   # 20 P4/16-medium
+  - [-1, 1, Conv, [256, 3, 2]]                   # 19
+  - [[-1, 14], 1, Concat, [1]]                   # 20 cat head P4
+  - [-1, 2, C3k2, [512, True]]                   # 21 P4/16-medium
 
-  - [-1, 1, Conv, [512, 3, 2]]                   # 21
-  - [[-1, 11], 1, Concat, [1]]                   # 22 cat head P5
-  - [-1, 1, C3k2, [1024, True, 0.5, True]]       # 23 P5/32-large
+  - [-1, 1, Conv, [512, 3, 2]]                   # 22
+  - [[-1, 11], 1, Concat, [1]]                   # 23 cat head P5
+  - [-1, 1, C3k2, [1024, True, 0.5, True]]       # 24 P5/32-large
 
-  - [[17, 20, 23], 1, Detect, [nc]]              # 24 Detect(P3, P4, P5)
+  - [[18, 21, 24], 1, Detect, [nc]]              # 25 Detect(P3, P4, P5)

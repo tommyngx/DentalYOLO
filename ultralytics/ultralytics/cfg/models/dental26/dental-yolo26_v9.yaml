@@ -1,6 +1,6 @@
-# DentalYOLO26 v9 - lightweight Triplet-YOLO26.
-# Starts from cfg/models/26/yolo26.yaml and inserts one Triplet Attention block in the P3 neck.
-# The YOLO26 Detect head module is unchanged.
+# DentalYOLO26 v9 - Arch-LSKA-YOLO26.
+# Starts from cfg/models/26/yolo26.yaml and inserts one dental arch attention block in the backbone.
+# The SPPF block and YOLO26 Detect head module are unchanged.
 
 # Parameters
 nc: 80
@@ -26,26 +26,26 @@ backbone:
   - [-1, 2, C3k2, [512, True]]                   # 6
   - [-1, 1, Conv, [1024, 3, 2]]                  # 7-P5/32
   - [-1, 2, C3k2, [1024, True]]                  # 8
-  - [-1, 1, SPPF, [1024, 5, 3, True]]            # 9
-  - [-1, 2, C2PSA, [1024]]                       # 10
+  - [-1, 1, ArchLSKA, [1024, 41, 21]]            # 9 horizontal-biased dental arch context
+  - [-1, 1, SPPF, [1024, 5, 3, True]]            # 10
+  - [-1, 2, C2PSA, [1024]]                       # 11
 
 # Head
 head:
-  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]   # 11
-  - [[-1, 6], 1, Concat, [1]]                    # 12 cat backbone P4
-  - [-1, 2, C3k2, [512, True]]                   # 13
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]   # 12
+  - [[-1, 6], 1, Concat, [1]]                    # 13 cat backbone P4
+  - [-1, 2, C3k2, [512, True]]                   # 14
 
-  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]   # 14
-  - [[-1, 4], 1, Concat, [1]]                    # 15 cat backbone P3
-  - [-1, 2, C3k2, [256, True]]                   # 16 P3/8-small
-  - [-1, 1, TripletAttention, [256]]             # 17 neck P3 attention
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]   # 15
+  - [[-1, 4], 1, Concat, [1]]                    # 16 cat backbone P3
+  - [-1, 2, C3k2, [256, True]]                   # 17 P3/8-small
 
   - [-1, 1, Conv, [256, 3, 2]]                   # 18
-  - [[-1, 13], 1, Concat, [1]]                   # 19 cat head P4
+  - [[-1, 14], 1, Concat, [1]]                   # 19 cat head P4
   - [-1, 2, C3k2, [512, True]]                   # 20 P4/16-medium
 
   - [-1, 1, Conv, [512, 3, 2]]                   # 21
-  - [[-1, 10], 1, Concat, [1]]                   # 22 cat backbone P5
+  - [[-1, 11], 1, Concat, [1]]                   # 22 cat head P5
   - [-1, 1, C3k2, [1024, True, 0.5, True]]       # 23 P5/32-large
 
   - [[17, 20, 23], 1, Detect, [nc]]              # 24 Detect(P3, P4, P5)

@@ -18,9 +18,9 @@ DentalYOLO/
 
 These variants are dental-specific, selectively placed attention adaptations of YOLO26 for panoramic radiograph analysis. They do not claim new attention mechanisms; they reuse lightweight attention ideas in positions motivated by small, dense, low-contrast OPG findings and long dental arch context.
 
-- `ultralytics/ultralytics/cfg/models/dental26/dental-yolo26_v9.yaml`: Triplet Attention is inserted only in the neck after the P3 `C3k2` fusion block. This targets small-object recall with minimal parameter growth.
-- `ultralytics/ultralytics/cfg/models/dental26/dental-yolo26_v10.yaml`: one `ArchLSKA` block is inserted in the late backbone after the deepest `C3k2` stage and before `SPPF`. It uses horizontal-biased asymmetric depthwise kernels for dental arch context.
-- `ultralytics/ultralytics/cfg/models/dental26/dental-yolo26_v11.yaml`: one `DAABLite` block is inserted in the late backbone, and one extra `TripletAttention` block is inserted at the P3 neck output for small-object fusion.
+- `ultralytics/ultralytics/cfg/models/dental26/dental-yolo26_v9.yaml`: one `ArchLSKA` block is inserted in the late backbone after the deepest `C3k2` stage and before `SPPF`. It uses horizontal-biased asymmetric depthwise kernels for dental arch context.
+- `ultralytics/ultralytics/cfg/models/dental26/dental-yolo26_v10.yaml`: one `DAABLite` block is inserted in the late backbone, and one extra `TripletAttention` block is inserted at the P3 neck output for small-object fusion.
+- `ultralytics/ultralytics/cfg/models/dental26/dental-yolo26_v11.yaml`: fast DAAB-lite removes the extra P3 neck Triplet block and uses smaller DAAB-lite strip kernels for lower latency.
 
 The baseline `ultralytics/ultralytics/cfg/models/26/yolo26.yaml` remains unchanged. All v9-v11 configs keep the YOLO26 `Detect` module and three-scale detection outputs unchanged.
 
