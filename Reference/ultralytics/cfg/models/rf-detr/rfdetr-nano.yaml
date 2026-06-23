@@ -1,0 +1,41 @@
+# Ultralytics RF-DETR Nano config.
+# This YAML is consumed by ultralytics.models.rf_detr, not by YOLO parse_model().
+
+family: rf-detr
+task: detect
+variant: nano
+nc: 80
+
+backbone:
+  encoder: dinov2_windowed_small
+  out_feature_indexes: [3, 6, 9, 12]
+  resolution: 384
+  patch_size: 16
+  num_windows: 2
+  positional_encoding_size: 24
+  pretrain_weights: null  # set "rf-detr-nano.pth" to use RF-DETR published pretrained weights
+
+head:
+  hidden_dim: 256
+  dec_layers: 2
+  sa_nheads: 8
+  ca_nheads: 16
+  dec_n_points: 2
+  num_queries: 300
+  num_select: 300
+  projector_scale: [P4]
+
+loss:
+  cls_loss_coef: 1.0
+  ia_bce_loss: true
+
+train:
+  dataset_file: yolo
+  output_dir: runs/rf-detr/rfdetr-nano
+  epochs: 100
+  batch_size: 8
+  num_workers: 4
+  lr: 0.0001
+  lr_encoder: 0.00015
+  weight_decay: 0.0001
+  tensorboard: true
