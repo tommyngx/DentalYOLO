@@ -76,6 +76,7 @@ from .conv import (
     RepConv,
     SpatialAttention,
 )
+from .coordconv import AddCoords, CoordConv
 from .dental_modules import DRELAN, LATDAA, XRayEnhanceConv
 from .dental_ssl_modules import DentalReconstructionDecoder, MaskedReconstructionLoss, random_patch_mask, ssim_loss
 from .dental_yolo_blocks import (
@@ -124,6 +125,7 @@ from .transformer import (
 
 __all__ = (
     "AIFI",
+    "AddCoords",
     "C1",
     "C2",
     "C2PSA",
@@ -163,6 +165,7 @@ __all__ = (
     "Conv",
     "Conv2",
     "ConvTranspose",
+    "CoordConv",
     "DWConv",
     "DWConvTranspose2d",
     "DeformableTransformerDecoder",

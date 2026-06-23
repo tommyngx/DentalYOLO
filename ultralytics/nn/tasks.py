@@ -49,6 +49,7 @@ from ultralytics.nn.modules import (
     Conv,
     Conv2,
     ConvTranspose,
+    CoordConv,
     DAABLite,
     DRELAN,
     DentalReconstructionDecoder,
@@ -1817,6 +1818,7 @@ def parse_model(d, ch, verbose=True):
         {
             Classify,
             Conv,
+            CoordConv,
             XRayEnhanceConv,
             SlotAttention,
             SlimSlotAttention,
