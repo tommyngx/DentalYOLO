@@ -53,7 +53,7 @@ class _TripletSpatialGate(nn.Module):
         self.compress = _ChannelPool()
         self.spatial = nn.Sequential(
             nn.Conv2d(2, 1, kernel_size, padding=padding, bias=False),
-            nn.BatchNorm2d(1),
+            nn.GroupNorm(1, 1),
             nn.Sigmoid(),
         )
 
