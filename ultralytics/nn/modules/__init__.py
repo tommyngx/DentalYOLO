@@ -73,12 +73,23 @@ from .conv import (
     GhostConv,
     Index,
     LightConv,
+    MaskAwareConv,
     RepConv,
     SpatialAttention,
 )
 from .coordconv import AddCoords, CoordConv
 from .dental_modules import DRELAN, LATDAA, XRayEnhanceConv
-from .dental_ssl_modules import DentalReconstructionDecoder, MaskedReconstructionLoss, random_patch_mask, ssim_loss
+from .dental_ssl_modules import (
+    DentalReconstructionDecoder,
+    DINOv2DistillHead,
+    DistillationLoss,
+    FeatureReconstructionLoss,
+    MaskedReconstructionLoss,
+    SobelEdgeExtractor,
+    random_patch_mask,
+    ssim_loss,
+)
+from .jepa_ssl_modules import JEPALoss, LatentPredictor
 from .rtdetr_resnet_basic import ResNetBasicBlock, ResNetBasicLayer
 from .dental_yolo_blocks import (
     ArchLSKA,
@@ -217,10 +228,18 @@ __all__ = (
     "DAABLite",
     "DRELAN",
     "DentalReconstructionDecoder",
+    "DINOv2DistillHead",
+    "DistillationLoss",
     "ECALayer",
+    "JEPALoss",
     "LATDAA",
     "LargeKernelDWContext",
+    "LatentPredictor",
+    "MaskAwareConv",
     "MaskedReconstructionLoss",
+    "FeatureReconstructionLoss",
+    "SobelEdgeExtractor",
+    "random_patch_mask",
     "SlimSlotAttention",
     "SlotAttention",
     "StableSlimSlotAttention",

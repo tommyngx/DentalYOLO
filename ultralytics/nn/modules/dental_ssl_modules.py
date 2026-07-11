@@ -124,3 +124,171 @@ class MaskedReconstructionLoss(nn.Module):
             l1 = l1_map.mean()
             ssim = ssim_map.mean()
         return self.l1_weight * l1 + self.ssim_weight * ssim, torch.stack((l1.detach(), ssim.detach()))
+
+
+# ---------------------------------------------------------------------------
+# SSL1: Feature-level Reconstruction (Sobel edge target)
+# ---------------------------------------------------------------------------
+
+
+class SobelEdgeExtractor(nn.Module):
+    """GPU-accelerated Sobel edge extractor (non-trainable).
+
+    Converts a grayscale or single-channel image into a 2-channel edge map
+    (horizontal + vertical gradients) that serves as the reconstruction target
+    for SSL1 feature-level pretraining.
+    """
+
+    def __init__(self):
+        super().__init__()
+        kx = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=torch.float32).view(1, 1, 3, 3)
+        ky = torch.tensor([[-1, -2, -1], [0, 0, 0], [1, 2, 1]], dtype=torch.float32).view(1, 1, 3, 3)
+        self.register_buffer("kx", kx)
+        self.register_buffer("ky", ky)
+
+    @torch.no_grad()
+    def forward(self, x):
+        """Return 2-channel edge map from 1-channel input ``x``."""
+        if x.shape[1] > 1:
+            x = x.mean(dim=1, keepdim=True)
+        gx = F.conv2d(x, self.kx, padding=1)
+        gy = F.conv2d(x, self.ky, padding=1)
+        return torch.cat([gx, gy], dim=1)  # B, 2, H, W
+
+
+class FeatureReconstructionLoss(nn.Module):
+    """L1 + SSIM loss computed on Sobel edge maps instead of raw pixels.
+
+    This forces the model to learn structural edges (tooth boundaries, bone
+    contours) rather than wasting capacity on X-ray film noise.
+
+    Args:
+        l1_weight: Weight for L1 component.
+        ssim_weight: Weight for SSIM component.
+        masked_only: If True, only compute loss on masked regions.
+    """
+
+    def __init__(self, l1_weight=0.8, ssim_weight=0.2, masked_only=True, eps=1e-6):
+        super().__init__()
+        self.sobel = SobelEdgeExtractor()
+        self.l1_weight = l1_weight
+        self.ssim_weight = ssim_weight
+        self.masked_only = masked_only
+        self.eps = eps
+
+    def forward(self, pred, target, mask=None):
+        """Compute feature reconstruction loss.
+
+        Args:
+            pred: Decoder output, shape ``B, 2, H, W`` (predicted edge map).
+            target: Original image, shape ``B, 1, H, W``.
+            mask: Binary mask, shape ``B, 1, H, W``.
+        """
+        edge_target = self.sobel(target)
+        if pred.shape[-2:] != edge_target.shape[-2:]:
+            edge_target = F.interpolate(edge_target, size=pred.shape[-2:], mode="bilinear", align_corners=False)
+            if mask is not None:
+                mask = F.interpolate(mask, size=pred.shape[-2:], mode="nearest")
+        # Expand mask to 2 channels to match edge maps
+        if mask is not None and mask.shape[1] == 1:
+            mask = mask.expand_as(pred)
+
+        l1_map = (pred - edge_target).abs()
+        ssim_map = ssim_loss(pred, edge_target, reduction="none")
+
+        if self.masked_only and mask is not None:
+            denom = mask.sum().clamp_min(self.eps)
+            l1 = (l1_map * mask).sum() / denom
+            ssim_val = (ssim_map * mask).sum() / denom
+        else:
+            l1 = l1_map.mean()
+            ssim_val = ssim_map.mean()
+        return self.l1_weight * l1 + self.ssim_weight * ssim_val, torch.stack((l1.detach(), ssim_val.detach()))
+
+
+# ---------------------------------------------------------------------------
+# SSL3: DINOv2 Knowledge Distillation
+# ---------------------------------------------------------------------------
+
+
+class DINOv2DistillHead(nn.Module):
+    """Projection head for SSL3 (DINOv2 Distillation) pretraining.
+
+    Projects multiscale features P3, P4, P5 to a unified channel dimension
+    matching the DINOv2 teacher's embedding dimension (e.g., 384 for ViT-S).
+    """
+
+    def __init__(self, channels, target_dim=384):
+        """Initialize projection layers for each input channel dimension."""
+        super().__init__()
+        if isinstance(channels, int):
+            channels = [channels]
+        self.channels = list(channels)
+        self.target_dim = target_dim
+        self.proj = nn.ModuleList(nn.Conv2d(c, target_dim, 1) for c in self.channels)
+
+    def forward(self, x):
+        """Project input list of features to the target dimension."""
+        feats = x if isinstance(x, (list, tuple)) else [x]
+        return [proj(f) for f, proj in zip(feats, self.proj)]
+
+
+class DistillationLoss(nn.Module):
+    """Cosine similarity loss between student projected features and DINOv2 teacher features."""
+
+    def __init__(self, target_dim=384):
+        """Initialize the distillation loss module."""
+        super().__init__()
+        self.teacher = None
+        self.target_dim = target_dim
+
+    def forward(self, pred, target, mask=None):
+        """Compute distillation loss between student projected features and DINOv2.
+
+        Args:
+            pred: Projected student features (list of 3 Tensors: P3, P4, P5).
+            target: Original input image, shape ``B, 1, H, W`` or ``B, 3, H, W``.
+            mask: Unused here, included for interface compatibility with trainer.
+        """
+        if self.teacher is None:
+            # Dynamically import and load DINOv2 via timm to avoid urllib HTTP/2.0 bugs
+            device = target.device
+            LOGGER = None
+            try:
+                from ultralytics.utils import LOGGER
+                LOGGER.info("Loading DINOv2 (ViT-S/14) via timm...")
+            except Exception:
+                print("Loading DINOv2 (ViT-S/14) via timm...")
+            import timm
+            self.teacher = timm.create_model("vit_small_patch14_dinov2", pretrained=True).to(device).eval()
+            for p in self.teacher.parameters():
+                p.requires_grad = False
+
+        b, c, h, w = target.shape
+        h_d = ((h + 13) // 14) * 14
+        w_d = ((w + 13) // 14) * 14
+        if h != h_d or w != w_d:
+            dinov_in = F.interpolate(target, size=(h_d, w_d), mode="bilinear", align_corners=False)
+        else:
+            dinov_in = target
+
+        if c == 1:
+            dinov_in = dinov_in.repeat(1, 3, 1, 1)
+
+        with torch.no_grad():
+            grid_h, grid_w = h_d // 14, w_d // 14
+            # Extract patch tokens: skip class token (index 0) from forward_features output
+            feats = self.teacher.forward_features(dinov_in)  # shape (B, 1 + N, 384)
+            patch_feats = feats[:, 1:, :]  # shape (B, N, 384)
+            teacher_feat = patch_feats.permute(0, 2, 1).reshape(b, self.target_dim, grid_h, grid_w)
+
+        loss = 0.0
+        student_feats = pred if isinstance(pred, (list, tuple)) else [pred]
+        for f in student_feats:
+            target_feat = F.interpolate(teacher_feat, size=f.shape[-2:], mode="bilinear", align_corners=False)
+            cos_sim = F.cosine_similarity(f, target_feat, dim=1)
+            loss += (1.0 - cos_sim).mean()
+
+        return loss, torch.stack((loss.detach(), torch.tensor(0.0, device=target.device)))
+
+

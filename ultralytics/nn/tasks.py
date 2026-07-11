@@ -53,8 +53,10 @@ from ultralytics.nn.modules import (
     DAABLite,
     DRELAN,
     DentalReconstructionDecoder,
+    DINOv2DistillHead,
     Detect,
     DWConv,
+    MaskAwareConv,
     DWConvTranspose2d,
     Focus,
     GhostBottleneck,
@@ -66,6 +68,7 @@ from ultralytics.nn.modules import (
     LRPCHead,
     LATDAA,
     LargeKernelDWContext,
+    LatentPredictor,
     Pose,
     Pose26,
     RepC3,
@@ -1819,6 +1822,7 @@ def parse_model(d, ch, verbose=True):
         {
             Classify,
             Conv,
+            MaskAwareConv,
             CoordConv,
             XRayEnhanceConv,
             SlotAttention,
@@ -1972,7 +1976,7 @@ def parse_model(d, ch, verbose=True):
             args.insert(1, [ch[x] for x in f])  # channels as second arg
         elif m is RTDETRDecoder:  # special case, channels arg must be passed in index 1
             args.insert(1, [ch[x] for x in f])
-        elif m is DentalReconstructionDecoder:
+        elif m in {DentalReconstructionDecoder, DINOv2DistillHead, LatentPredictor}:
             args = [[ch[x] for x in f] if isinstance(f, list) else ch[f], *args]
             c2 = args[1] if len(args) > 1 else 1
         elif m is CBLinear:

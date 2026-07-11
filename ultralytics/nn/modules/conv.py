@@ -24,6 +24,7 @@ __all__ = (
     "LightConv",
     "RepConv",
     "SpatialAttention",
+    "MaskAwareConv",
 )
 
 
@@ -667,3 +668,68 @@ class Index(nn.Module):
             (torch.Tensor): Selected tensor.
         """
         return x[self.index]
+
+
+class MaskRegistry:
+    """Global registry to hold the current binary mask during SSL2 pretraining forward passes."""
+    mask = None
+
+
+class MaskAwareConv(nn.Module):
+    """Mask-Aware (Partial) Convolution layer for SSL2 (Spark-style) training.
+
+    Wraps standard Conv but scales output based on the number of unmasked/visible pixels
+    in the kernel receptive field, then updates the global mask for downstream layers.
+    """
+
+    def __init__(self, c1, c2, k=3, s=1, p=None, g=1, d=1, act=True):
+        """Initialize MaskAwareConv layer with specified kernel size, stride, and padding."""
+        super().__init__()
+        import torch.nn.functional as F
+        padding = autopad(k, p, d)
+        self.conv = nn.Conv2d(c1, c2, k, s, padding, groups=g, dilation=d, bias=False)
+        self.bn = nn.BatchNorm2d(c2)
+        self.act = Conv.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+
+        self.k = k
+        self.s = s
+        self.p = padding
+        self.d = d
+
+        mask_weight = torch.ones(1, 1, k, k)
+        self.register_buffer("mask_weight", mask_weight)
+
+    def forward(self, x):
+        """Forward pass. Applies mask-guided scaling if a mask is active in MaskRegistry."""
+        import torch.nn.functional as F
+        mask = MaskRegistry.mask
+        if mask is None:
+            return self.act(self.bn(self.conv(x)))
+
+        if mask.shape[-2:] != x.shape[-2:]:
+            mask = F.interpolate(mask, size=x.shape[-2:], mode="nearest")
+
+        # 1. Mask input features
+        masked_x = x * mask
+
+        # 2. Apply standard convolution
+        raw_out = self.conv(masked_x)
+
+        # 3. Propagate mask to count visible pixels in receptive field
+        with torch.no_grad():
+            mask_out = F.conv2d(mask, self.mask_weight, None, self.s, self.p, self.d)
+
+        # 4. Compute scaling factor (total kernel size / visible pixels)
+        kernel_size = self.k * self.k
+        scale = kernel_size / (mask_out + 1e-8)
+        scale = scale * (mask_out > 0).float()
+
+        # 5. Apply scaling and BN/activation
+        out = raw_out * scale
+        out = self.act(self.bn(out))
+
+        # 6. Update registry mask for subsequent layers
+        MaskRegistry.mask = (mask_out > 0).float()
+
+        return out
+

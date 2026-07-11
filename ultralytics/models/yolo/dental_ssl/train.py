@@ -186,6 +186,12 @@ def train(args):
         ckpt = torch_load(weights, map_location="cpu")
         model.load(ckpt)
 
+    # For JEPA (SSL4), initialize target encoder
+    is_jepa = "ssl4" in str(args.model).lower()
+    if is_jepa:
+        from ultralytics.nn.modules.jepa_ssl_modules import EMATargetEncoder
+        target_encoder = EMATargetEncoder(model, momentum=0.996)
+
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scaler = torch.amp.GradScaler("cuda", enabled=args.amp and device.type == "cuda")
     save_dir = Path(args.project) / args.name
@@ -195,23 +201,56 @@ def train(args):
     for epoch in range(args.epochs):
         model.train()
         use_ssim = epoch >= args.ssim_start
-        criterion = MaskedReconstructionLoss(
-            l1_weight=0.8 if use_ssim else 1.0,
-            ssim_weight=0.2 if use_ssim else 0.0,
-            masked_only=True,
-        )
+        if is_jepa:
+            from ultralytics.nn.modules.jepa_ssl_modules import JEPALoss
+            criterion = JEPALoss(masked_only=True)
+        elif "ssl1" in str(args.model).lower():
+            from ultralytics.nn.modules.dental_ssl_modules import FeatureReconstructionLoss
+            criterion = FeatureReconstructionLoss(
+                l1_weight=0.8 if use_ssim else 1.0,
+                ssim_weight=0.2 if use_ssim else 0.0,
+                masked_only=True,
+            )
+        elif "ssl3" in str(args.model).lower():
+            from ultralytics.nn.modules.dental_ssl_modules import DistillationLoss
+            criterion = DistillationLoss(target_dim=384)
+        else:
+            criterion = MaskedReconstructionLoss(
+                l1_weight=0.8 if use_ssim else 1.0,
+                ssim_weight=0.2 if use_ssim else 0.0,
+                masked_only=True,
+            )
         total = 0.0
         for i, (imgs, _) in enumerate(loader):
             imgs = imgs.to(device, non_blocking=True)
             masked, mask = random_patch_mask(imgs, mask_ratio=args.mask_ratio, patch_size=args.patch)
+            
+            # For SSL2, set the global mask before the forward pass
+            from ultralytics.nn.modules.conv import MaskRegistry
+            MaskRegistry.mask = mask.clone() if mask is not None else None
+            
             with autocast(enabled=args.amp and device.type != "cpu", device=device.type):
-                pred = model(masked)
-                loss, items = criterion(pred, imgs, mask)
+                if is_jepa:
+                    # Run context encoder on masked input
+                    pred = model(masked)
+                    # Run target encoder on complete input
+                    with torch.no_grad():
+                        target_latent = target_encoder(imgs)
+                    loss, items = criterion(pred, target_latent, mask)
+                else:
+                    pred = model(masked)
+                    loss, items = criterion(pred, imgs, mask)
+                
+            # Clear the mask registry after forward pass
+            MaskRegistry.mask = None
+            
             scaler.scale(loss).backward()
             if (i + 1) % args.accumulate == 0 or (i + 1) == len(loader):
                 scaler.step(optimizer)
                 scaler.update()
                 optimizer.zero_grad(set_to_none=True)
+                if is_jepa:
+                    target_encoder.update(model, momentum=0.996)
             total += float(loss.detach())
 
         mean_loss = total / max(len(loader), 1)
