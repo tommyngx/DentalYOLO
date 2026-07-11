@@ -79,6 +79,7 @@ from .conv import (
 from .coordconv import AddCoords, CoordConv
 from .dental_modules import DRELAN, LATDAA, XRayEnhanceConv
 from .dental_ssl_modules import DentalReconstructionDecoder, MaskedReconstructionLoss, random_patch_mask, ssim_loss
+from .rtdetr_resnet_basic import ResNetBasicBlock, ResNetBasicLayer
 from .dental_yolo_blocks import (
     ArchLSKA,
     BiFPNLite,
@@ -192,6 +193,8 @@ __all__ = (
     "RepConv",
     "RepNCSPELAN4",
     "RepVGGDW",
+    "ResNetBasicBlock",
+    "ResNetBasicLayer",
     "ResNetLayer",
     "SCDown",
     "Segment",

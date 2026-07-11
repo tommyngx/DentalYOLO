@@ -24,6 +24,9 @@ var/
 *.egg
 MANIFEST
 
+Reference/RT-DETRv2/
+Reference/RT-DETRv2/*
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt

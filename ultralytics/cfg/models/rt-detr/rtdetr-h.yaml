@@ -1,0 +1,62 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
+
+# Ultralytics RT-DETR-h (Huge) hybrid object detection model with P3/8 - P5/32 outputs
+# Backbone: HGNetv2-H (from RT-DETRv2 reference implementation)
+# Model docs: https://docs.ultralytics.com/models/rtdetr
+# Task docs: https://docs.ultralytics.com/tasks/detect
+
+# Parameters
+nc: 80 # number of classes
+scales: # model compound scaling constants, i.e. 'model=rtdetr-h.yaml' will call rtdetr-h.yaml with scale 'h'
+  # [depth, width, max_channels]
+  h: [1.00, 1.00, 2048]
+
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, HGStem, [48, 96]] # 0-P2/4
+  - [-1, 6, HGBlock, [96, 192, 3]]
+  - [-1, 6, HGBlock, [96, 192, 3, False, True]] # 2-stage 1
+
+  - [-1, 1, DWConv, [192, 3, 2, 1, False]] # 3-P3/8
+  - [-1, 6, HGBlock, [192, 512, 3]]
+  - [-1, 6, HGBlock, [192, 512, 3, False, True]]
+  - [-1, 6, HGBlock, [192, 512, 3, False, True]] # 6-stage 2
+
+  - [-1, 1, DWConv, [512, 3, 2, 1, False]] # 7-P4/16
+  - [-1, 6, HGBlock, [384, 1024, 5, True, False]] # cm, c2, k, light, shortcut
+  - [-1, 6, HGBlock, [384, 1024, 5, True, True]]
+  - [-1, 6, HGBlock, [384, 1024, 5, True, True]]
+  - [-1, 6, HGBlock, [384, 1024, 5, True, True]]
+  - [-1, 6, HGBlock, [384, 1024, 5, True, True]]
+  - [-1, 6, HGBlock, [384, 1024, 5, True, True]] # 13-stage 3
+
+  - [-1, 1, DWConv, [1024, 3, 2, 1, False]] # 14-P5/32
+  - [-1, 6, HGBlock, [768, 2048, 5, True, False]]
+  - [-1, 6, HGBlock, [768, 2048, 5, True, True]]
+  - [-1, 6, HGBlock, [768, 2048, 5, True, True]] # 17-stage 4
+
+head:
+  - [-1, 1, Conv, [512, 1, 1, None, 1, 1, False]] # 18 input_proj.2
+  - [-1, 1, AIFI, [2048, 8]]
+  - [-1, 1, Conv, [512, 1, 1]] # 20, Y5, lateral_convs.0
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [13, 1, Conv, [512, 1, 1, None, 1, 1, False]] # 22 input_proj.1
+  - [[-2, -1], 1, Concat, [1]]
+  - [-1, 3, RepC3, [512]] # 24, fpn_blocks.0
+  - [-1, 1, Conv, [512, 1, 1]] # 25, Y4, lateral_convs.1
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [6, 1, Conv, [512, 1, 1, None, 1, 1, False]] # 27 input_proj.0
+  - [[-2, -1], 1, Concat, [1]] # cat backbone P4
+  - [-1, 3, RepC3, [512]] # X3 (29), fpn_blocks.1
+
+  - [-1, 1, Conv, [512, 3, 2]] # 30, downsample_convs.0
+  - [[-1, 25], 1, Concat, [1]] # cat Y4
+  - [-1, 3, RepC3, [512]] # F4 (32), pan_blocks.0
+
+  - [-1, 1, Conv, [512, 3, 2]] # 33, downsample_convs.1
+  - [[-1, 20], 1, Concat, [1]] # cat Y5
+  - [-1, 3, RepC3, [512]] # F5 (35), pan_blocks.1
+
+  - [[29, 32, 35], 1, RTDETRDecoder, [nc]] # RTDETRDecoder(P3, P4, P5)

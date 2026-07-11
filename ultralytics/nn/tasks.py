@@ -72,6 +72,7 @@ from ultralytics.nn.modules import (
     RepConv,
     RepNCSPELAN4,
     RepVGGDW,
+    ResNetBasicLayer,
     ResNetLayer,
     RTDETRDecoder,
     SCDown,
@@ -1934,6 +1935,8 @@ def parse_model(d, ch, verbose=True):
                 n = 1
         elif m is ResNetLayer:
             c2 = args[1] if args[3] else args[1] * 4
+        elif m is ResNetBasicLayer:
+            c2 = args[1]  # BasicBlock expansion=1, output channels = c2
         elif m is torch.nn.BatchNorm2d:
             args = [ch[f]]
         elif m is Concat:
