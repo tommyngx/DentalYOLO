@@ -93,11 +93,19 @@ def validate_config(args):
             print(f"  - {name}")
         sys.exit(1)
     model_source = MODEL_REGISTRY[args.model]
-    # Check yaml exists (skip official pretrained .pt)
-    if model_source.endswith(".yaml"):
-        if not Path(model_source).exists():
+    # DentalYOLO26
+    if isinstance(model_source, dict):
+        yaml_path = Path(model_source["yaml"])
+        if not yaml_path.exists():
             print("\nERROR: Model yaml not found\n")
-            print(model_source)
+            print(yaml_path)
+            sys.exit(1)
+    # Custom yaml models (RT-DETR, ...)
+    elif model_source.endswith(".yaml"):
+        yaml_path = Path(model_source)
+        if not yaml_path.exists():
+            print("\nERROR: Model yaml not found\n")
+            print(yaml_path)
             sys.exit(1)
     # Dataset
     if not Path(args.data).exists():
@@ -112,7 +120,7 @@ def validate_config(args):
     if args.batch <= 0:
         print("\nERROR: batch must be > 0")
         sys.exit(1)
-    # Image size
+    # Image Size
     if args.imgsz <= 0:
         print("\nERROR: imgsz must be > 0")
         sys.exit(1)
@@ -146,6 +154,7 @@ def build_model(model_name):
     if isinstance(model_info, dict):
         model = YOLO(model_info["yaml"])
         model.load(model_info["pretrained"])
+        print(f"Loaded pretrained weight: {model_info['pretrained']}")
         return model
     if isinstance(model_info, str):
         if model_name.startswith("rtdetr"):
