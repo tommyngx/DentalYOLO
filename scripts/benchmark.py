@@ -76,13 +76,21 @@ def validate_config(args):
     
 # SELECT DEVICE
 def select_device(device_arg):
-    if device_arg:
-        return torch.device(device_arg)
-    if torch.cuda.is_available():
-        return torch.device("cuda:0")
-    if (hasattr(torch.backends, "mps")and torch.backends.mps.is_available()):
-        return torch.device("mps")
-    return torch.device("cpu")
+    # Auto
+    if device_arg == "":
+        if torch.cuda.is_available():
+            return torch.device("cuda:0")
+        if (
+            hasattr(torch.backends, "mps")
+            and torch.backends.mps.is_available()
+        ):
+            return torch.device("mps")
+        return torch.device("cpu")
+    # Numeric GPU index
+    if str(device_arg).isdigit():
+        return torch.device(f"cuda:{device_arg}")
+    # cuda:0 / cpu / mps
+    return torch.device(device_arg)
 
 # SYNCHRONIZE DEVICE
 def synchronize(device):
@@ -104,7 +112,7 @@ def benchmark_latency(model, args):
     use_half = (args.half and args.device.type == "cuda")
     if use_half:
         net.half()
-    dtype = (torch.float16n if use_half else torch.float32)
+    dtype = torch.float16 if use_half else torch.float32
     x = torch.zeros(
         args.batch,
         3,
@@ -126,7 +134,7 @@ def benchmark_latency(model, args):
         synchronize(args.device)
         elapsed = time.perf_counter() - start
 
-    latency_ms = (elapsed * 1000 / args.iter)
+    latency_ms = (elapsed * 1000 / max(args.iters, 1))
     fps = (args.batch * 1000 / latency_ms)
     gpu = (
         torch.cuda.get_device_name(args.device)
