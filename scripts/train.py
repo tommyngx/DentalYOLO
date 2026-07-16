@@ -50,8 +50,8 @@ MODEL_REGISTRY = {
     "yolo26x": "yolo26x.pt",
     
     # RT-DETR
-    "rtdetr-l": "rtdetr-l.pt",
-    "rtdetr-x": "rtdetr-x.pt",
+    # "rtdetr-l": "rtdetr-l.pt",
+    # "rtdetr-x": "rtdetr-x.pt",
     "rtdetr-r18": "ultralytics/cfg/models/rt-detr/rtdetr-r18.yaml",
     "rtdetr-r34": "ultralytics/cfg/models/rt-detr/rtdetr-r34.yaml",
     "rtdetr-s": "ultralytics/cfg/models/rt-detr/rtdetr-s.yaml",
@@ -59,12 +59,14 @@ MODEL_REGISTRY = {
     "rtdetr-l": "ultralytics/cfg/models/rt-detr/rtdetr-l.yaml",
     "rtdetr-x": "ultralytics/cfg/models/rt-detr/rtdetr-x.yaml",
 
-
-    # DentalYOLO26
-    "dental-yolo26_v15":
-        "ultralytics/cfg/models/dental26/dental-yolo26_v15.yaml",
 }
-
+DENTAL_YOLO26_YAML = ("ultralytics/cfg/models/dental26/dental-yolo26_v15.yaml")
+for scale in ["n", "s", "m", "l", "x"]:
+    MODEL_REGISTRY[f"dental-yolo26{scale}_v15"] = {
+        "yaml": DENTAL_YOLO26_YAML,
+        "pretrained": f"yolo26{scale}.pt",
+}
+    
 # ARGUMENT PARSER
 def parse_args():
     parser = argparse.ArgumentParser(description="Training Script")
@@ -140,10 +142,16 @@ def validate_config(args):
             sys.exit(1)
             
 def build_model(model_name):
-    model_path = MODEL_REGISTRY[model_name]
-    if model_name.startswith("rtdetr"):
-        return RTDETR(model_path)
-    return YOLO(model_path)
+    model_info = MODEL_REGISTRY[model_name]
+    if isinstance(model_info, dict):
+        model = YOLO(model_info["yaml"])
+        model.load(model_info["pretrained"])
+        return model
+    if isinstance(model_info, str):
+        if model_name.startswith("rtdetr"):
+            return RTDETR(model_info)
+        return YOLO(model_info)
+    raise TypeError(f"Unsupported MODEL_REGISTRY entry for '{model_name}'")
 
 # TRAIN
 def train(args):
