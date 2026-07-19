@@ -60,10 +60,10 @@ MODEL_REGISTRY = {
     "rtdetr-x": "ultralytics/cfg/models/rt-detr/rtdetr-x.yaml",
 
 }
-DENTAL_YOLO26_YAML = ("ultralytics/cfg/models/dental26/dental-yolo26_v15.yaml")
+DENTAL_YOLO26_DIR = "ultralytics/cfg/models/dental26"
 for scale in ["n", "s", "m", "l", "x"]:
     MODEL_REGISTRY[f"dental-yolo26{scale}_v15"] = {
-        "yaml": DENTAL_YOLO26_YAML,
+        "model": f"{DENTAL_YOLO26_DIR}/dental-yolo26{scale}_v15.yaml",
         "pretrained": f"yolo26{scale}.pt",
 }
     
@@ -95,10 +95,10 @@ def validate_config(args):
     model_source = MODEL_REGISTRY[args.model]
     # DentalYOLO26
     if isinstance(model_source, dict):
-        yaml_path = Path(model_source["yaml"])
-        if not yaml_path.exists():
+        model_path = Path(model_source["model"])
+        if not model_path.exists():
             print("\nERROR: Model yaml not found\n")
-            print(yaml_path)
+            print(model_path)
             sys.exit(1)
     # Custom yaml models (RT-DETR, ...)
     elif model_source.endswith(".yaml"):
@@ -152,7 +152,7 @@ def validate_config(args):
 def build_model(model_name):
     model_info = MODEL_REGISTRY[model_name]
     if isinstance(model_info, dict):
-        model = YOLO(model_info["yaml"])
+        model = YOLO(model_info["model"])
         model.load(model_info["pretrained"])
         print(f"Loaded pretrained weight: {model_info['pretrained']}")
         return model
