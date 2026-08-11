@@ -54,8 +54,8 @@ MODEL_REGISTRY = {
     # "rtdetr-x": "rtdetr-x.pt",
     "rtdetr-r18": "ultralytics/cfg/models/rt-detr/rtdetr-r18.yaml",
     "rtdetr-r34": "ultralytics/cfg/models/rt-detr/rtdetr-r34.yaml",
-    "rtdetr-s": "ultralytics/cfg/models/rt-detr/rtdetr-s.yaml",
-    "rtdetr-m": "ultralytics/cfg/models/rt-detr/rtdetr-m.yaml",
+    "rtdetr-resnet50": "ultralytics/cfg/models/rt-detr/rtdetr-resnet50.yaml",
+    "rtdetr-resnet101": "ultralytics/cfg/models/rt-detr/rtdetr-resnet101.yaml",
     "rtdetr-l": "ultralytics/cfg/models/rt-detr/rtdetr-l.yaml",
     "rtdetr-x": "ultralytics/cfg/models/rt-detr/rtdetr-x.yaml",
 
