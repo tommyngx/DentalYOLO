@@ -17,6 +17,10 @@ class AddCoords(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Return ``x`` concatenated with coordinate maps on the same device and dtype."""
+        return torch.cat((x, self.maps(x)), dim=1)
+
+    def maps(self, x: torch.Tensor) -> torch.Tensor:
+        """Return only the coordinate maps for ``x``: ``[B, 2 (or 3 with r), H, W]`` in ``[-1, 1]``."""
         if x.ndim != 4:
             raise ValueError(f"AddCoords expects a BCHW tensor, got shape {tuple(x.shape)}")
 
@@ -35,7 +39,7 @@ class AddCoords(nn.Module):
         if self.with_r:
             r = (xx.square() + yy.square()).clamp_min(0).sqrt()
             coordinates.append(r)
-        return torch.cat((x, *coordinates), dim=1)
+        return torch.cat(coordinates, dim=1)
 
 
 class CoordConv(nn.Module):

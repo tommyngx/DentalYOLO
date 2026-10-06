@@ -1067,9 +1067,11 @@ class BaseTrainer:
             g[3] = {"params": g[3], **optim_args, "weight_decay": decay, "use_muon": True, "param_group": "muon"}
             import re
 
-            # higher lr for certain parameters in MuSGD when finetuning
+            # higher lr for the classification branch of the detection head when finetuning. The head index is
+            # taken from the model instead of being hard-coded to 23 so variants with extra layers still match.
             # proto.semseg is the checkpoint parameter name for YOLO26 semantic auxiliary heads.
-            pattern = re.compile(r"(?=.*23)(?=.*cv3)|proto\.semseg|SemanticSegment")
+            head_idx = len(getattr(unwrap_model(model), "model", ())) - 1
+            pattern = re.compile(rf"^model\.{head_idx}\.(one2one_)?cv3\.|proto\.semseg|SemanticSegment")
             g_ = []  # new param groups
             for x in g:
                 p = x.pop("params")

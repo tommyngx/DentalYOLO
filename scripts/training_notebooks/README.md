@@ -247,7 +247,7 @@ class Config:
 
     # MODEL
     # Change this to select the model used in the experiment.
-    model_name: str = "dental-yolo26n_v15"
+    model_name: str = "dental-yolo26n_v16"
 
     # TRAINING
     epochs: int = 100
@@ -299,7 +299,7 @@ For example:
 ```python
 project_dir = "/content/drive/MyDrive/DentalYOLO26"
 dataset_name = "ADLD"
-model_name = "dental-yolo26m_v15"
+model_name = "dental-yolo26m_v16"
 experiment_name = "exp1_e200_b8"
 ```
 
@@ -309,7 +309,7 @@ will produce:
 DentalYOLO26/
 └── output/
     └── ADLD/
-        └── dental-yolo26m_v15/
+        └── dental-yolo26m_v16/
             └── exp1_e200_b8/
 ```
 
@@ -340,22 +340,27 @@ This notebook is used for the DentalYOLO26 models.
 Available models:
 
 ```text
-dental-yolo26n_v15
-dental-yolo26s_v15
-dental-yolo26m_v15
-dental-yolo26l_v15
+dental-yolo26n_v16
+dental-yolo26s_v16
+dental-yolo26m_v16
+dental-yolo26l_v16
 ```
+
+v16 is the recommended variant: its modules replace YOLO26 layers in place and start as exact identities, so
+`yolo26{scale}.pt` transfers 100% of the pretrained weights. Ablations `dental-yolo26*_v16a` … `_v16f` and the
+original `dental-yolo26*_v15` … `_v15f` configs are also accepted (see the top-level README for the differences).
+The notebook loads the pretrained checkpoint that matches the scale letter in `model_name`.
 
 Example:
 
 ```python
-model_name = "dental-yolo26m_v15"
+model_name = "dental-yolo26m_v16"
 ```
 
 To train another DentalYOLO26 variant, change only the model name:
 
 ```python
-model_name = "dental-yolo26l_v15"
+model_name = "dental-yolo26l_v16"
 ```
 
 ---
@@ -591,7 +596,7 @@ Choose a model supported by the notebook.
 For example, in `dental-yolo26.ipynb`:
 
 ```python
-model_name = "dental-yolo26m_v15"
+model_name = "dental-yolo26m_v16"
 ```
 
 In `yolo_family.ipynb`:
@@ -637,7 +642,7 @@ Use the following guide:
 
 | Goal               | Notebook              | Model                |
 | ------------------ | --------------------- | -------------------- |
-| Train DentalYOLO26 | `dental-yolo26.ipynb` | `dental-yolo26*_v15` |
+| Train DentalYOLO26 | `dental-yolo26.ipynb` | `dental-yolo26*_v16` |
 | Train YOLOv8       | `yolo_family.ipynb`   | `yolov8*`            |
 | Train YOLO12       | `yolo_family.ipynb`   | `yolo12*`            |
 | Train YOLO26       | `yolo_family.ipynb`   | `yolo26*`            |
@@ -672,7 +677,7 @@ Example:
 
 ```python
 dataset_name = "ADLD"
-model_name = "dental-yolo26m_v15"
+model_name = "dental-yolo26m_v16"
 epochs = 200
 batchsize = 8
 seed = 2026
@@ -849,10 +854,10 @@ Training parameters should be changed only when intentionally running a differen
 ### DentalYOLO26
 
 ```text
-dental-yolo26n_v15
-dental-yolo26s_v15
-dental-yolo26m_v15
-dental-yolo26l_v15
+dental-yolo26n_v16
+dental-yolo26s_v16
+dental-yolo26m_v16
+dental-yolo26l_v16
 ```
 
 ### YOLOv8

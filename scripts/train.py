@@ -61,12 +61,19 @@ MODEL_REGISTRY = {
 
 }
 DENTAL_YOLO26_DIR = "ultralytics/cfg/models/dental26"
-for scale in ["n", "s", "m", "l", "x"]:
-    MODEL_REGISTRY[f"dental-yolo26{scale}_v15"] = {
-        "model": f"{DENTAL_YOLO26_DIR}/dental-yolo26{scale}_v15.yaml",
-        "pretrained": f"yolo26{scale}.pt",
-}
-    
+# v15*: original variants (inserted layers shift the Detect index, so most head weights do not transfer).
+# v16*: same three ideas as same-index, identity-initialised wrappers; yolo26{scale}.pt transfers 100%.
+# Suffix a-f = ablations (a: ECA, b: slot, c: coord, d: a+b, e: a+c, f: b+c).
+DENTAL_YOLO26_VERSIONS = [f"v{v}{s}" for v in (15, 16) for s in ("", "a", "b", "c", "d", "e", "f")]
+for version in DENTAL_YOLO26_VERSIONS:
+    for scale in ["n", "s", "m", "l", "x"]:
+        MODEL_REGISTRY[f"dental-yolo26{scale}_{version}"] = {
+            # Ultralytics reads the scale letter from this name and loads the unscaled yaml below.
+            "model": f"{DENTAL_YOLO26_DIR}/dental-yolo26{scale}_{version}.yaml",
+            "yaml": f"{DENTAL_YOLO26_DIR}/dental-yolo26_{version}.yaml",
+            "pretrained": f"yolo26{scale}.pt",
+        }
+
 # ARGUMENT PARSER
 def parse_args():
     parser = argparse.ArgumentParser(description="Training Script")
@@ -95,7 +102,7 @@ def validate_config(args):
     model_source = MODEL_REGISTRY[args.model]
     # DentalYOLO26
     if isinstance(model_source, dict):
-        model_path = Path(model_source["model"])
+        model_path = Path(model_source.get("yaml", model_source["model"]))
         if not model_path.exists():
             print("\nERROR: Model yaml not found\n")
             print(model_path)
@@ -169,7 +176,7 @@ def train(args):
     print(f"Experiment : {args.name}")
     print()
     model = build_model(args.model)
-    
+
     results = model.train(
         data=args.data,
         epochs=args.epochs,

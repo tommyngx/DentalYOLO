@@ -41,6 +41,8 @@ from ultralytics.nn.modules import (
     C3Ghost,
     C3k2,
     C3k2ECA,
+    C3k2ECAv2,
+    C3k2Slot,
     C3x,
     CBFuse,
     CBLinear,
@@ -55,6 +57,7 @@ from ultralytics.nn.modules import (
     DentalReconstructionDecoder,
     DINOv2DistillHead,
     Detect,
+    DetectCoord,
     DWConv,
     MaskAwareConv,
     DWConvTranspose2d,
@@ -1850,6 +1853,8 @@ def parse_model(d, ch, verbose=True):
             C2f,
             C3k2,
             C3k2ECA,
+            C3k2ECAv2,
+            C3k2Slot,
             RepNCSPELAN4,
             ELAN1,
             ADown,
@@ -1879,6 +1884,8 @@ def parse_model(d, ch, verbose=True):
             C2f,
             C3k2,
             C3k2ECA,
+            C3k2ECAv2,
+            C3k2Slot,
             C2fAttn,
             C3,
             C3TR,
@@ -1919,7 +1926,7 @@ def parse_model(d, ch, verbose=True):
             if m in repeat_modules:
                 args.insert(2, n)  # number of repeats
                 n = 1
-            if m in {C3k2, C3k2ECA}:  # for M/L/X sizes
+            if m in {C3k2, C3k2ECA, C3k2ECAv2, C3k2Slot}:  # for M/L/X sizes
                 legacy = False
                 if scale in "mlx":
                     args[3] = True
@@ -1961,12 +1968,25 @@ def parse_model(d, ch, verbose=True):
                 Pose26,
                 OBB,
                 OBB26,
+                DetectCoord,
             }
         ):
             args.extend([reg_max, end2end, [ch[x] for x in f]])
             if m is Segment or m is YOLOESegment or m is Segment26 or m is YOLOESegment26:
                 args[2] = make_divisible(min(args[2], max_channels) * width, 8)
-            if m in {Detect, YOLOEDetect, Segment, Segment26, YOLOESegment, YOLOESegment26, Pose, Pose26, OBB, OBB26}:
+            if m in {
+                Detect,
+                DetectCoord,
+                YOLOEDetect,
+                Segment,
+                Segment26,
+                YOLOESegment,
+                YOLOESegment26,
+                Pose,
+                Pose26,
+                OBB,
+                OBB26,
+            }:
                 m.legacy = legacy
         elif m is SemanticSegment:
             args.append([ch[x] for x in f])  # nc, ch tuple

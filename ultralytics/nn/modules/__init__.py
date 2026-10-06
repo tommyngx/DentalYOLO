@@ -78,6 +78,7 @@ from .conv import (
     SpatialAttention,
 )
 from .coordconv import AddCoords, CoordConv
+from .dental_v16 import C3k2ECAv2, C3k2Slot, CoordInject, DetectCoord, ECAGate
 from .dental_modules import DRELAN, LATDAA, XRayEnhanceConv
 from .dental_ssl_modules import (
     DentalReconstructionDecoder,
@@ -225,6 +226,11 @@ __all__ = (
     "C2Slot",
     "C2StableSlot",
     "C3k2ECA",
+    "C3k2ECAv2",
+    "C3k2Slot",
+    "CoordInject",
+    "DetectCoord",
+    "ECAGate",
     "DAABLite",
     "DRELAN",
     "DentalReconstructionDecoder",
